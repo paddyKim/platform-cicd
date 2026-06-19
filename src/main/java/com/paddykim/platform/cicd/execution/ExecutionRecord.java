@@ -14,6 +14,7 @@ public class ExecutionRecord {
     private final String requestedBy;
     private final ExecutionStatus status;
     private final String statusMessage;
+    private final String changedFilePath;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -27,7 +28,8 @@ public class ExecutionRecord {
             String requestedValue,
             String requestedBy,
             ExecutionStatus status,
-            String statusMessage
+            String statusMessage,
+            String changedFilePath
     ) {
         Instant now = Instant.now();
         this.id = id;
@@ -40,6 +42,7 @@ public class ExecutionRecord {
         this.requestedBy = requestedBy;
         this.status = status;
         this.statusMessage = statusMessage;
+        this.changedFilePath = changedFilePath;
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -82,6 +85,10 @@ public class ExecutionRecord {
 
     public String getStatusMessage() {
         return statusMessage;
+    }
+
+    public String getChangedFilePath() {
+        return changedFilePath;
     }
 
     public Instant getCreatedAt() {

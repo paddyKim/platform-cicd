@@ -13,6 +13,7 @@ public record ExecutionResponse(
         String requestedBy,
         ExecutionStatus status,
         String statusMessage,
+        String changedFilePath,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -29,6 +30,7 @@ public record ExecutionResponse(
                 record.getRequestedBy(),
                 record.getStatus(),
                 record.getStatusMessage(),
+                record.getChangedFilePath(),
                 record.getCreatedAt(),
                 record.getUpdatedAt()
         );

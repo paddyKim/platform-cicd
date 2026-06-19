@@ -14,21 +14,12 @@ public class ExecutionRepository {
     private final AtomicLong idSequence = new AtomicLong(1);
     private final ConcurrentMap<Long, ExecutionRecord> records = new ConcurrentHashMap<>();
 
-    public ExecutionRecord save(ExecutionCreateRequest request) {
-        Long id = idSequence.getAndIncrement();
-        ExecutionRecord record = new ExecutionRecord(
-                id,
-                request.portalRequestId(),
-                request.applicationName().trim(),
-                request.environment().trim(),
-                request.componentName().trim(),
-                request.requestType(),
-                request.requestedValue().trim(),
-                request.requestedBy().trim(),
-                ExecutionStatus.REQUESTED,
-                "Execution request received by platform-cicd"
-        );
-        records.put(id, record);
+    public Long nextId() {
+        return idSequence.getAndIncrement();
+    }
+
+    public ExecutionRecord save(ExecutionRecord record) {
+        records.put(record.getId(), record);
 
         return record;
     }
