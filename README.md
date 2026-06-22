@@ -8,12 +8,14 @@ Backend-only CI/CD execution service for the platform project.
 
 - image build requests
 - image deployment requests
-- replica change requests
-- later GitOps updates, image pushes, ArgoCD sync, and execution callbacks
+- later replica operations, rollback, and recovery actions
+- later GitOps commit/push, image pushes, ArgoCD sync, and execution callbacks
 
 The initial Day 18 implementation is a synchronous HTTP skeleton. Message queue based asynchronous dispatch is deferred.
 
 Day 19 adds the first real execution path: `DEPLOY_IMAGE` updates the local GitOps values file for the dev environment.
+
+Day 20 keeps `DEPLOY_IMAGE` as the priority and defers `CHANGE_REPLICAS` until the deployment flow is complete. Replica changes belong to later operations or recovery work.
 
 ## Local Run
 
@@ -73,7 +75,7 @@ platform-cicd:   REQUESTED -> RUNNING -> SUCCEEDED / FAILED
 
 `QUEUED` will be added later when a message broker is introduced.
 
-Day 19 support matrix:
+Current support matrix:
 
 | Request Type | Environment | Component | Result |
 |---|---|---|---|
@@ -81,7 +83,19 @@ Day 19 support matrix:
 | `DEPLOY_IMAGE` | `dev` | `platform-web` | updates `web.image.tag` |
 | `DEPLOY_IMAGE` | `dev` | `platform-mariadb` | `FAILED` |
 | `BUILD_IMAGE` | any | any | `FAILED` |
-| `CHANGE_REPLICAS` | any | any | `FAILED` |
+| `CHANGE_REPLICAS` | any | any | deferred; currently `FAILED` |
+
+Next deployment steps:
+
+```text
+DEPLOY_IMAGE request
+-> GitOps values image tag update
+-> platform-deploy commit/push or approved deploy repo update
+-> ArgoCD automated/manual sync
+-> portal status tracking
+```
+
+ArgoCD sync mode, self-heal, prune, and recovery choices should be selected from `platform-portal` in a later milestone.
 
 ## Verification
 
