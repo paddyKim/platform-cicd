@@ -146,7 +146,7 @@ class ExecutionControllerTests {
     }
 
     @Test
-    void preservesBuildProfileExecutionMetadata() throws Exception {
+    void runsShellBuildProfileExecution() throws Exception {
         mockMvc.perform(post("/api/cicd/executions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -160,7 +160,10 @@ class ExecutionControllerTests {
                                   "requestedBy": "platform-operator",
                                   "sourceRepositoryId": 10,
                                   "buildProfileId": 20,
-                                  "ciTool": "SHELL"
+                                  "ciTool": "SHELL",
+                                  "repositoryUrl": "https://github.com/paddyKim/platform-app.git",
+                                  "workingDirectory": ".",
+                                  "script": "echo building $REPOSITORY_URL with $IMAGE_TAG"
                                 }
                                 """))
                 .andExpect(status().isCreated())
@@ -169,8 +172,68 @@ class ExecutionControllerTests {
                 .andExpect(jsonPath("$.sourceRepositoryId", is(10)))
                 .andExpect(jsonPath("$.buildProfileId", is(20)))
                 .andExpect(jsonPath("$.ciTool", is("SHELL")))
+                .andExpect(jsonPath("$.repositoryUrl", is("https://github.com/paddyKim/platform-app.git")))
+                .andExpect(jsonPath("$.workingDirectory", is(".")))
+                .andExpect(jsonPath("$.status", is("SUCCEEDED")))
+                .andExpect(jsonPath("$.statusMessage", is("Shell script completed with exit code 0")))
+                .andExpect(jsonPath("$.exitCode", is(0)))
+                .andExpect(jsonPath("$.logSummary", containsString("building https://github.com/paddyKim/platform-app.git")))
+                .andExpect(jsonPath("$.startedAt").exists())
+                .andExpect(jsonPath("$.finishedAt").exists());
+    }
+
+    @Test
+    void failsShellBuildProfileExecutionWhenScriptExitsNonZero() throws Exception {
+        mockMvc.perform(post("/api/cicd/executions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "portalRequestId": 8,
+                                  "applicationName": "platform-app",
+                                  "environment": "dev",
+                                  "componentName": "platform-api",
+                                  "requestType": "BUILD_IMAGE",
+                                  "requestedValue": "day22-test",
+                                  "requestedBy": "platform-operator",
+                                  "sourceRepositoryId": 10,
+                                  "buildProfileId": 20,
+                                  "ciTool": "SHELL",
+                                  "repositoryUrl": "https://github.com/paddyKim/platform-app.git",
+                                  "workingDirectory": ".",
+                                  "script": "echo failing build && exit 7"
+                                }
+                                """))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status", is("FAILED")))
-                .andExpect(jsonPath("$.statusMessage", containsString("Unsupported execution request type")));
+                .andExpect(jsonPath("$.statusMessage", is("Shell script completed with exit code 7")))
+                .andExpect(jsonPath("$.exitCode", is(7)))
+                .andExpect(jsonPath("$.logSummary", containsString("failing build")));
+    }
+
+    @Test
+    void failsBuildProfileExecutionForUnsupportedCiTool() throws Exception {
+        mockMvc.perform(post("/api/cicd/executions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "portalRequestId": 9,
+                                  "applicationName": "platform-app",
+                                  "environment": "dev",
+                                  "componentName": "platform-api",
+                                  "requestType": "BUILD_IMAGE",
+                                  "requestedValue": "day22-test",
+                                  "requestedBy": "platform-operator",
+                                  "sourceRepositoryId": 10,
+                                  "buildProfileId": 20,
+                                  "ciTool": "GITHUB_ACTIONS",
+                                  "repositoryUrl": "https://github.com/paddyKim/platform-app.git",
+                                  "workingDirectory": ".",
+                                  "script": "name: build"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status", is("FAILED")))
+                .andExpect(jsonPath("$.statusMessage", containsString("not implemented")));
     }
 
     @Test

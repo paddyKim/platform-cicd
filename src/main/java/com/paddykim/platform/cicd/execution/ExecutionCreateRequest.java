@@ -14,6 +14,9 @@ public record ExecutionCreateRequest(
         @NotBlank String requestedBy,
         Long sourceRepositoryId,
         Long buildProfileId,
-        String ciTool
+        String ciTool,
+        String repositoryUrl,
+        String workingDirectory,
+        String script
 ) {
 }

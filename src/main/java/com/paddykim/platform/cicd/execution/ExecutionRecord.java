@@ -15,9 +15,15 @@ public class ExecutionRecord {
     private final Long sourceRepositoryId;
     private final Long buildProfileId;
     private final String ciTool;
+    private final String repositoryUrl;
+    private final String workingDirectory;
     private final ExecutionStatus status;
     private final String statusMessage;
     private final String changedFilePath;
+    private final Instant startedAt;
+    private final Instant finishedAt;
+    private final Integer exitCode;
+    private final String logSummary;
     private final Instant createdAt;
     private final Instant updatedAt;
 
@@ -33,9 +39,15 @@ public class ExecutionRecord {
             Long sourceRepositoryId,
             Long buildProfileId,
             String ciTool,
+            String repositoryUrl,
+            String workingDirectory,
             ExecutionStatus status,
             String statusMessage,
-            String changedFilePath
+            String changedFilePath,
+            Instant startedAt,
+            Instant finishedAt,
+            Integer exitCode,
+            String logSummary
     ) {
         Instant now = Instant.now();
         this.id = id;
@@ -49,9 +61,15 @@ public class ExecutionRecord {
         this.sourceRepositoryId = sourceRepositoryId;
         this.buildProfileId = buildProfileId;
         this.ciTool = ciTool;
+        this.repositoryUrl = repositoryUrl;
+        this.workingDirectory = workingDirectory;
         this.status = status;
         this.statusMessage = statusMessage;
         this.changedFilePath = changedFilePath;
+        this.startedAt = startedAt;
+        this.finishedAt = finishedAt;
+        this.exitCode = exitCode;
+        this.logSummary = logSummary;
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -100,6 +118,14 @@ public class ExecutionRecord {
         return ciTool;
     }
 
+    public String getRepositoryUrl() {
+        return repositoryUrl;
+    }
+
+    public String getWorkingDirectory() {
+        return workingDirectory;
+    }
+
     public ExecutionStatus getStatus() {
         return status;
     }
@@ -110,6 +136,22 @@ public class ExecutionRecord {
 
     public String getChangedFilePath() {
         return changedFilePath;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Instant getFinishedAt() {
+        return finishedAt;
+    }
+
+    public Integer getExitCode() {
+        return exitCode;
+    }
+
+    public String getLogSummary() {
+        return logSummary;
     }
 
     public Instant getCreatedAt() {

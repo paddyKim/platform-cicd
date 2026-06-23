@@ -14,9 +14,15 @@ public record ExecutionResponse(
         Long sourceRepositoryId,
         Long buildProfileId,
         String ciTool,
+        String repositoryUrl,
+        String workingDirectory,
         ExecutionStatus status,
         String statusMessage,
         String changedFilePath,
+        Instant startedAt,
+        Instant finishedAt,
+        Integer exitCode,
+        String logSummary,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -34,9 +40,15 @@ public record ExecutionResponse(
                 record.getSourceRepositoryId(),
                 record.getBuildProfileId(),
                 record.getCiTool(),
+                record.getRepositoryUrl(),
+                record.getWorkingDirectory(),
                 record.getStatus(),
                 record.getStatusMessage(),
                 record.getChangedFilePath(),
+                record.getStartedAt(),
+                record.getFinishedAt(),
+                record.getExitCode(),
+                record.getLogSummary(),
                 record.getCreatedAt(),
                 record.getUpdatedAt()
         );
