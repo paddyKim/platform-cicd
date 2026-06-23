@@ -146,6 +146,34 @@ class ExecutionControllerTests {
     }
 
     @Test
+    void preservesBuildProfileExecutionMetadata() throws Exception {
+        mockMvc.perform(post("/api/cicd/executions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "portalRequestId": 7,
+                                  "applicationName": "platform-app",
+                                  "environment": "dev",
+                                  "componentName": "platform-api",
+                                  "requestType": "BUILD_IMAGE",
+                                  "requestedValue": "day21-test",
+                                  "requestedBy": "platform-operator",
+                                  "sourceRepositoryId": 10,
+                                  "buildProfileId": 20,
+                                  "ciTool": "SHELL"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.portalRequestId", is(7)))
+                .andExpect(jsonPath("$.requestType", is("BUILD_IMAGE")))
+                .andExpect(jsonPath("$.sourceRepositoryId", is(10)))
+                .andExpect(jsonPath("$.buildProfileId", is(20)))
+                .andExpect(jsonPath("$.ciTool", is("SHELL")))
+                .andExpect(jsonPath("$.status", is("FAILED")))
+                .andExpect(jsonPath("$.statusMessage", containsString("Unsupported execution request type")));
+    }
+
+    @Test
     void failsUnsupportedComponent() throws Exception {
         mockMvc.perform(post("/api/cicd/executions")
                         .contentType(MediaType.APPLICATION_JSON)

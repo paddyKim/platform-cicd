@@ -11,6 +11,9 @@ public record ExecutionCreateRequest(
         @NotBlank String componentName,
         @NotNull ExecutionRequestType requestType,
         @NotBlank String requestedValue,
-        @NotBlank String requestedBy
+        @NotBlank String requestedBy,
+        Long sourceRepositoryId,
+        Long buildProfileId,
+        String ciTool
 ) {
 }

@@ -12,6 +12,9 @@ public class ExecutionRecord {
     private final ExecutionRequestType requestType;
     private final String requestedValue;
     private final String requestedBy;
+    private final Long sourceRepositoryId;
+    private final Long buildProfileId;
+    private final String ciTool;
     private final ExecutionStatus status;
     private final String statusMessage;
     private final String changedFilePath;
@@ -27,6 +30,9 @@ public class ExecutionRecord {
             ExecutionRequestType requestType,
             String requestedValue,
             String requestedBy,
+            Long sourceRepositoryId,
+            Long buildProfileId,
+            String ciTool,
             ExecutionStatus status,
             String statusMessage,
             String changedFilePath
@@ -40,6 +46,9 @@ public class ExecutionRecord {
         this.requestType = requestType;
         this.requestedValue = requestedValue;
         this.requestedBy = requestedBy;
+        this.sourceRepositoryId = sourceRepositoryId;
+        this.buildProfileId = buildProfileId;
+        this.ciTool = ciTool;
         this.status = status;
         this.statusMessage = statusMessage;
         this.changedFilePath = changedFilePath;
@@ -77,6 +86,18 @@ public class ExecutionRecord {
 
     public String getRequestedBy() {
         return requestedBy;
+    }
+
+    public Long getSourceRepositoryId() {
+        return sourceRepositoryId;
+    }
+
+    public Long getBuildProfileId() {
+        return buildProfileId;
+    }
+
+    public String getCiTool() {
+        return ciTool;
     }
 
     public ExecutionStatus getStatus() {

@@ -76,6 +76,9 @@ public class ExecutionService {
                 request.requestType(),
                 request.requestedValue().trim(),
                 request.requestedBy().trim(),
+                request.sourceRepositoryId(),
+                request.buildProfileId(),
+                request.ciTool() == null ? null : request.ciTool().trim(),
                 status,
                 statusMessage,
                 changedFilePath
