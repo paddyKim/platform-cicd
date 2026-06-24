@@ -1,6 +1,10 @@
 package com.paddykim.platform.cicd.execution;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -8,16 +12,20 @@ public class ExecutionService {
 
     private final ExecutionRepository executionRepository;
     private final GitOpsImageTagService gitOpsImageTagService;
-    private final ShellBuildRunner shellBuildRunner;
+    private final Map<String, BuildImageRunner> buildImageRunners;
 
     public ExecutionService(
             ExecutionRepository executionRepository,
             GitOpsImageTagService gitOpsImageTagService,
-            ShellBuildRunner shellBuildRunner
+            List<BuildImageRunner> buildImageRunners
     ) {
         this.executionRepository = executionRepository;
         this.gitOpsImageTagService = gitOpsImageTagService;
-        this.shellBuildRunner = shellBuildRunner;
+        this.buildImageRunners = buildImageRunners.stream()
+                .collect(Collectors.toMap(
+                        runner -> runner.ciTool().toUpperCase(Locale.ROOT),
+                        Function.identity()
+                ));
     }
 
     public ExecutionResponse createExecution(ExecutionCreateRequest request) {
@@ -60,6 +68,7 @@ public class ExecutionService {
                     null,
                     null,
                     null,
+                    null,
                     null
             );
         } catch (GitOpsExecutionException exception) {
@@ -68,17 +77,19 @@ public class ExecutionService {
     }
 
     private ExecutionRecord buildImage(Long id, ExecutionCreateRequest request) {
-        if (!"SHELL".equalsIgnoreCase(blankToEmpty(request.ciTool()))) {
-            return failed(id, request, "CI tool execution is not implemented for Day22: " + request.ciTool());
+        BuildImageRunner runner = buildImageRunners.get(blankToEmpty(request.ciTool()).toUpperCase(Locale.ROOT));
+        if (runner == null) {
+            return failed(id, request, "CI tool execution is not implemented for this runner: " + request.ciTool());
         }
 
-        ShellBuildResult result = shellBuildRunner.run(id, request);
+        BuildExecutionResult result = runner.run(id, request);
         return record(
                 id,
                 request,
                 result.status(),
                 result.statusMessage(),
                 null,
+                result.cloneResult(),
                 result.startedAt(),
                 result.finishedAt(),
                 result.exitCode(),
@@ -87,7 +98,7 @@ public class ExecutionService {
     }
 
     private static ExecutionRecord failed(Long id, ExecutionCreateRequest request, String message) {
-        return record(id, request, ExecutionStatus.FAILED, message, null, null, null, null, null);
+        return record(id, request, ExecutionStatus.FAILED, message, null, null, null, null, null, null);
     }
 
     private static ExecutionRecord record(
@@ -96,6 +107,7 @@ public class ExecutionService {
             ExecutionStatus status,
             String statusMessage,
             String changedFilePath,
+            GitCloneResult cloneResult,
             java.time.Instant startedAt,
             java.time.Instant finishedAt,
             Integer exitCode,
@@ -114,7 +126,11 @@ public class ExecutionService {
                 request.buildProfileId(),
                 blankToNull(request.ciTool()),
                 blankToNull(request.repositoryUrl()),
+                blankToNull(request.branch()),
                 blankToNull(request.workingDirectory()),
+                cloneResult == null ? null : cloneResult.status().name(),
+                cloneResult == null ? null : cloneResult.message(),
+                cloneResult == null || cloneResult.checkoutPath() == null ? null : cloneResult.checkoutPath().toString(),
                 status,
                 statusMessage,
                 changedFilePath,

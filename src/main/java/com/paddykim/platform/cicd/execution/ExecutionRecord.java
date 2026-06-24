@@ -16,7 +16,11 @@ public class ExecutionRecord {
     private final Long buildProfileId;
     private final String ciTool;
     private final String repositoryUrl;
+    private final String branch;
     private final String workingDirectory;
+    private final String cloneStatus;
+    private final String cloneMessage;
+    private final String checkoutPath;
     private final ExecutionStatus status;
     private final String statusMessage;
     private final String changedFilePath;
@@ -40,7 +44,11 @@ public class ExecutionRecord {
             Long buildProfileId,
             String ciTool,
             String repositoryUrl,
+            String branch,
             String workingDirectory,
+            String cloneStatus,
+            String cloneMessage,
+            String checkoutPath,
             ExecutionStatus status,
             String statusMessage,
             String changedFilePath,
@@ -62,7 +70,11 @@ public class ExecutionRecord {
         this.buildProfileId = buildProfileId;
         this.ciTool = ciTool;
         this.repositoryUrl = repositoryUrl;
+        this.branch = branch;
         this.workingDirectory = workingDirectory;
+        this.cloneStatus = cloneStatus;
+        this.cloneMessage = cloneMessage;
+        this.checkoutPath = checkoutPath;
         this.status = status;
         this.statusMessage = statusMessage;
         this.changedFilePath = changedFilePath;
@@ -122,8 +134,24 @@ public class ExecutionRecord {
         return repositoryUrl;
     }
 
+    public String getBranch() {
+        return branch;
+    }
+
     public String getWorkingDirectory() {
         return workingDirectory;
+    }
+
+    public String getCloneStatus() {
+        return cloneStatus;
+    }
+
+    public String getCloneMessage() {
+        return cloneMessage;
+    }
+
+    public String getCheckoutPath() {
+        return checkoutPath;
     }
 
     public ExecutionStatus getStatus() {

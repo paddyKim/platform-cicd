@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class ExecutionControllerTests {
 
     private static final Path TEST_VALUES_PATH = Path.of("build/test-values/dev-values.yaml");
+    private static final Path TEST_SOURCE_REPO = Path.of("build/test-source-repo");
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,6 +58,14 @@ class ExecutionControllerTests {
                 mariadb:
                   database: platform
                 """);
+        resetPath(TEST_SOURCE_REPO);
+        Files.createDirectories(TEST_SOURCE_REPO);
+        runGit("init", "-b", "main");
+        runGit("config", "user.email", "test@example.com");
+        runGit("config", "user.name", "Test User");
+        Files.writeString(TEST_SOURCE_REPO.resolve("README.md"), "platform-app\n");
+        runGit("add", "README.md");
+        runGit("commit", "-m", "initial commit");
     }
 
     @Test
@@ -161,23 +171,28 @@ class ExecutionControllerTests {
                                   "sourceRepositoryId": 10,
                                   "buildProfileId": 20,
                                   "ciTool": "SHELL",
-                                  "repositoryUrl": "https://github.com/paddyKim/platform-app.git",
+                                  "repositoryUrl": "%s",
+                                  "branch": "main",
                                   "workingDirectory": ".",
-                                  "script": "echo building $REPOSITORY_URL with $IMAGE_TAG"
+                                  "script": "cat README.md && echo building $REPOSITORY_URL with $IMAGE_TAG"
                                 }
-                                """))
+                                """.formatted(TEST_SOURCE_REPO.toUri())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.portalRequestId", is(7)))
                 .andExpect(jsonPath("$.requestType", is("BUILD_IMAGE")))
                 .andExpect(jsonPath("$.sourceRepositoryId", is(10)))
                 .andExpect(jsonPath("$.buildProfileId", is(20)))
                 .andExpect(jsonPath("$.ciTool", is("SHELL")))
-                .andExpect(jsonPath("$.repositoryUrl", is("https://github.com/paddyKim/platform-app.git")))
+                .andExpect(jsonPath("$.repositoryUrl", is(TEST_SOURCE_REPO.toUri().toString())))
+                .andExpect(jsonPath("$.branch", is("main")))
                 .andExpect(jsonPath("$.workingDirectory", is(".")))
+                .andExpect(jsonPath("$.cloneStatus", is("SUCCEEDED")))
+                .andExpect(jsonPath("$.cloneMessage", is("Git clone completed for branch main")))
+                .andExpect(jsonPath("$.checkoutPath").exists())
                 .andExpect(jsonPath("$.status", is("SUCCEEDED")))
                 .andExpect(jsonPath("$.statusMessage", is("Shell script completed with exit code 0")))
                 .andExpect(jsonPath("$.exitCode", is(0)))
-                .andExpect(jsonPath("$.logSummary", containsString("building https://github.com/paddyKim/platform-app.git")))
+                .andExpect(jsonPath("$.logSummary", containsString("platform-app")))
                 .andExpect(jsonPath("$.startedAt").exists())
                 .andExpect(jsonPath("$.finishedAt").exists());
     }
@@ -198,16 +213,47 @@ class ExecutionControllerTests {
                                   "sourceRepositoryId": 10,
                                   "buildProfileId": 20,
                                   "ciTool": "SHELL",
-                                  "repositoryUrl": "https://github.com/paddyKim/platform-app.git",
+                                  "repositoryUrl": "%s",
+                                  "branch": "main",
                                   "workingDirectory": ".",
                                   "script": "echo failing build && exit 7"
                                 }
-                                """))
+                                """.formatted(TEST_SOURCE_REPO.toUri())))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cloneStatus", is("SUCCEEDED")))
                 .andExpect(jsonPath("$.status", is("FAILED")))
                 .andExpect(jsonPath("$.statusMessage", is("Shell script completed with exit code 7")))
                 .andExpect(jsonPath("$.exitCode", is(7)))
                 .andExpect(jsonPath("$.logSummary", containsString("failing build")));
+    }
+
+    @Test
+    void failsShellBuildProfileExecutionWhenBranchDoesNotExist() throws Exception {
+        mockMvc.perform(post("/api/cicd/executions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "portalRequestId": 10,
+                                  "applicationName": "platform-app",
+                                  "environment": "dev",
+                                  "componentName": "platform-api",
+                                  "requestType": "BUILD_IMAGE",
+                                  "requestedValue": "day23-test",
+                                  "requestedBy": "platform-operator",
+                                  "sourceRepositoryId": 10,
+                                  "buildProfileId": 20,
+                                  "ciTool": "SHELL",
+                                  "repositoryUrl": "%s",
+                                  "branch": "missing-branch",
+                                  "workingDirectory": ".",
+                                  "script": "echo should not run"
+                                }
+                                """.formatted(TEST_SOURCE_REPO.toUri())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.cloneStatus", is("FAILED")))
+                .andExpect(jsonPath("$.branch", is("missing-branch")))
+                .andExpect(jsonPath("$.status", is("FAILED")))
+                .andExpect(jsonPath("$.statusMessage", containsString("Git clone failed")));
     }
 
     @Test
@@ -300,5 +346,34 @@ class ExecutionControllerTests {
         mockMvc.perform(get("/api/cicd/executions/{id}", 9999))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message", is("CI/CD execution not found: 9999")));
+    }
+
+    private static void resetPath(Path path) throws Exception {
+        if (!Files.exists(path)) {
+            return;
+        }
+
+        try (var paths = Files.walk(path)) {
+            for (Path child : paths.sorted(Comparator.reverseOrder()).toList()) {
+                Files.delete(child);
+            }
+        }
+    }
+
+    private static void runGit(String... args) throws Exception {
+        String[] command = new String[args.length + 3];
+        command[0] = "git";
+        command[1] = "-C";
+        command[2] = TEST_SOURCE_REPO.toAbsolutePath().toString();
+        System.arraycopy(args, 0, command, 3, args.length);
+
+        Process process = new ProcessBuilder(command)
+                .redirectErrorStream(true)
+                .start();
+        String output = new String(process.getInputStream().readAllBytes());
+        int exitCode = process.waitFor();
+        assertThat(exitCode)
+                .as(output)
+                .isEqualTo(0);
     }
 }
